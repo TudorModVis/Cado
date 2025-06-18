@@ -21,8 +21,16 @@ import { Checkbox } from "../ui/checkbox"
 import { Link } from "@/i18n/navigation"
 import { toast } from "@/components/ui/contactToast";
 import { useTranslations } from "next-intl"
+import { useMutation } from "@tanstack/react-query"
+import { useTRPC } from "@/app/_trpc/client"
 
 export default function ContactForm() {
+    const trpc = useTRPC();
+    const { mutate } = useMutation(trpc.contact.mutationOptions({
+        onSuccess: () => {
+            toast();
+        }
+    }));
 
     const t = useTranslations("ContactPage.ContactForm")
 
@@ -39,8 +47,7 @@ export default function ContactForm() {
       })
 
     function onSubmit(values: z.infer<typeof sendMessageRequest>) {
-        console.log(values)
-        toast();
+        mutate(values);
     }
 
     return (

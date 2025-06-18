@@ -121,6 +121,30 @@ export const addOrderProcedure = protectedProcedure
       client.orders.push(order._id.toString());
       await client.save();
 
+      // Send notification email to admin
+      const adminEmailHtml = await render(OrderConfirmation({
+        order: { 
+          ...order.toObject(), 
+          _id: order._id.toString(),
+          additional_info: order.additional_info,
+        } as unknown as ResOrderInterface,
+        locale: "ro",
+        paymentMethodName: input.payment_method,
+        regionName: input.additional_info.delivery_address?.region || "",
+        baseUrl: process.env.BASE_URL,
+      }));
+
+      const adminEmailData = {
+          from: process.env.FROM_EMAIL_ADDRESS,
+          to: process.env.CONTACT_EMAIL_ADDRESS,
+          subject: `New Order #${order.custom_id}`,
+          html: adminEmailHtml
+      }
+
+      const transporter = nodemailer.createTransport(mailConfig);
+
+      await transporter.sendMail(adminEmailData);
+
       // Update product stock quantities
       for (const orderProduct of input.products) {
         await Product.findOneAndUpdate(
@@ -204,7 +228,6 @@ export const addOrderProcedure = protectedProcedure
       }
 
       // Send email
-      const transporter = nodemailer.createTransport(mailConfig);
 
       const emailHtml = await render(OrderConfirmation({
         order: { 
